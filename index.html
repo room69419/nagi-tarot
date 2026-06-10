@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>凪タロット — 今日の1枚</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* =====================================================
+       DESIGN TOKENS
+       ===================================================== */
+    :root {
+      --c-void:       #07091A;   /* 深海 */
+      --c-deep:       #0D1530;   /* 夜の海 */
+      --c-navy:       #162247;   /* ネイビー */
+      --c-navy-light: #1E2F5A;   /* 薄ネイビー */
+      --c-gold:       #C8A84B;   /* ゴールド */
+      --c-gold-pale:  #E8D5A3;   /* 薄ゴールド */
+      --c-moon:       #F0F4FF;   /* 月明かり */
+      --c-silver:     #A8B8D0;   /* 銀 */
+
+      --ff-display: 'Cinzel', serif;
+      --ff-body:    'Noto Serif JP', serif;
+
+      --card-w: min(260px, 72vw);
+      --card-ratio: 1.75;
+
+      --ease-reveal: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* =====================================================
+       RESET & BASE
+       ===================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      min-height: 100dvh;
+      background-color: var(--c-void);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% 0%, #1a2a5e44 0%, transparent 70%),
+        radial-gradient(ellipse 60% 30% at 20% 80%, #0d193844 0%, transparent 60%);
+      color: var(--c-moon);
+      font-family: var(--ff-body);
+      font-weight: 300;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    /* =====================================================
+       STARS CANVAS (ambient)
+       ===================================================== */
+    #stars-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    /* =====================================================
+       LAYOUT
+       ===================================================== */
+    .page {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      padding: 0 20px 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* =====================================================
+       HEADER
+       ===================================================== */
+    .header {
+      width: 100%;
+      text-align: center;
+      padding: 48px 0 36px;
+    }
+
+    .header__eyebrow {
+      font-family: var(--ff-display);
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      color: var(--c-gold);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      opacity: 0.85;
+    }
+
+    .header__title {
+      font-family: var(--ff-display);
+      font-size: clamp(26px, 7vw, 34px);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--c-gold-pale);
+      line-height: 1.15;
+      text-shadow: 0 0 40px #c8a84b55;
+    }
+
+    .header__title em {
+      display: block;
+      font-style: normal;
+      font-size: 0.6em;
+      font-weight: 400;
+      letter-spacing: 0.25em;
+      color: var(--c-silver);
+      margin-top: 8px;
+    }
+
+    /* Moon ornament */
+    .header__moon {
+      display: block;
+      margin: 18px auto 0;
+      width: 36px;
+      height: 36px;
+      opacity: 0.55;
+    }
+
+    /* =====================================================
+       DIVIDER
+       ===================================================== */
+    .divider {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 4px 0 32px;
+      opacity: 0.4;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--c-gold), transparent);
+    }
+    .divider__gem {
+      width: 6px;
+      height: 6px;
+      background: var(--c-gold);
+      transform: rotate(45deg);
+      flex-shrink: 0;
+    }
+
+    /* =====================================================
+       DRAW BUTTON
+       ===================================================== */
+    .draw-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 48px;
+      background: transparent;
+      border: 1px solid var(--c-gold);
+      border-radius: 2px;
+      color: var(--c-gold-pale);
+      font-family: var(--ff-display);
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      transition: background 0.3s, box-shadow 0.3s, color 0.3s;
+      overflow: hidden;
+      margin-bottom: 48px;
+    }
+
+    .draw-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #c8a84b18, #c8a84b08);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .draw-btn:hover::before,
+    .draw-btn:focus-visible::before { opacity: 1; }
+
+    .draw-btn:hover,
+    .draw-btn:focus-visible {
+      box-shadow: 0 0 24px #c8a84b44, inset 0 0 16px #c8a84b18;
+      outline: none;
+    }
+
+    .draw-btn:active { transform: scale(0.97); }
+
+    .draw-btn__icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* Ripple */
+    .draw-btn .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: #c8a84b33;
+      transform: scale(0);
+      animation: ripple-anim 0.6s linear;
+      pointer-events: none;
+    }
+    @keyframes ripple-anim {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    /* =====================================================
+       CARD AREA
+       ===================================================== */
+    .card-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      min-height: 0;
+    }
+
+    /* =====================================================
+       CARD FLIP WRAPPER
+       ===================================================== */
+    .card-flip {
+      width: var(--card-w);
+      height: calc(var(--card-w) * var(--card-ratio));
+      perspective: 900px;
+      cursor: default;
+    }
+
+    .card-flip__inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.8s var(--ease-reveal);
+    }
+
+    .card-flip.flipped .card-flip__inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-flip__face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow:
+        0 8px 40px #00000088,
+        0 0 0 1px #c8a84b33;
+    }
+
+    /* Back face */
+    .card-flip__back {
+      background: var(--c-navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-back-pattern {
+      width: 100%;
+      height: 100%;
+      opacity: 0.5;
+    }
+
+    /* Front face */
+    .card-flip__front {
+      transform: rotateY(180deg);
+      background: var(--c-deep);
+    }
+
+    .card-flip__front img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Card glow on reveal */
+    .card-flip.flipped .card-flip__face {
+      box-shadow:
+        0 12px 60px #00000099,
+        0 0 0 1px #c8a84b55,
+        0 0 40px #c8a84b22;
+    }
+
+    /* =====================================================
+       CARD INFO
+       ===================================================== */
+    .card-info {
+      width: 100%;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.6s 0.6s var(--ease-reveal),
+                  transform 0.6s 0.6s var(--ease-reveal);
+    }
+
+    .card-info.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .card-info__number {
+      font-family: var(--ff-display);
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      color: var(--c-gold);
+      opacity: 0.7;
+      margin-bottom: 8px;
+    }
+
+    .card-info__name-ja {
+      font-family: var(--ff-body);
+      font-size: clamp(20px, 5.5vw, 26px);
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      color: var(--c-gold-pale);
+      margin-bottom: 4px;
+      text-shadow: 0 0 30px #c8a84b44;
+    }
+
+    .card-info__name-en {
+      font-family: var(--ff-display);
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      color: var(--c-silver);
+      opacity: 0.75;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .card-info__orientation {
+      display: inline-block;
+      font-family: var(--ff-display);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--c-gold);
+      border: 1px solid #c8a84b55;
+      padding: 3px 14px;
+      border-radius: 2px;
+      margin-bottom: 24px;
+      transition: color 0.4s, border-color 0.4s;
+    }
+
+    /* 逆位置バッジ — 銀紫系で正位置と区別 */
+    .card-info__orientation[data-reversed="true"] {
+      color: #b8a8d8;
+      border-color: #b8a8d855;
+    }
+
+    .card-info__divider {
+      width: 48px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--c-gold), transparent);
+      margin: 0 auto 24px;
+      opacity: 0.5;
+    }
+
+    .card-info__message {
+      font-size: clamp(14px, 3.8vw, 15px);
+      line-height: 2;
+      color: var(--c-moon);
+      opacity: 0.88;
+      letter-spacing: 0.04em;
+      padding: 0 4px;
+      /* 縦書き風の行間 */
+    }
+
+    /* =====================================================
+       WAVE RIPPLE (canvas overlay)
+       ===================================================== */
+    #ripple-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #ripple-canvas.active { opacity: 1; }
+
+    /* =====================================================
+       FOOTER
+       ===================================================== */
+    .footer {
+      margin-top: 56px;
+      font-family: var(--ff-display);
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      color: var(--c-silver);
+      opacity: 0.3;
+      text-align: center;
+    }
+
+    /* =====================================================
+       REDUCED MOTION
+       ===================================================== */
+    @media (prefers-reduced-motion: reduce) {
+      .card-flip__inner { transition-duration: 0.01ms; }
+      .card-info { transition-duration: 0.01ms; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ambient stars -->
+<canvas id="stars-canvas"></canvas>
+<!-- Wave ripple overlay -->
+<canvas id="ripple-canvas"></canvas>
+
+<main class="page">
+
+  <!-- Header -->
+  <header class="header">
+    <p class="header__eyebrow">Nagi Tarot</p>
+    <h1 class="header__title">
+      凪タロット
+      <em>今日の一枚</em>
+    </h1>
+    <svg class="header__moon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="18" cy="18" r="11" stroke="#C8A84B" stroke-width="1"/>
+      <path d="M24 12 C20 13 17 21 20 26 C14 25 10 20 12 14 C14 9 21 8 24 12Z" fill="#C8A84B" opacity="0.7"/>
+    </svg>
+  </header>
+
+  <!-- Divider -->
+  <div class="divider" aria-hidden="true"><div class="divider__gem"></div></div>
+
+  <!-- Draw Button -->
+  <button class="draw-btn" id="draw-btn" aria-label="カードを1枚引く">
+    <span class="draw-btn__icon" aria-hidden="true">✦</span>
+    <span>1枚引く</span>
+  </button>
+
+  <!-- Card Area -->
+  <section class="card-area" id="card-area" aria-live="polite">
+
+    <!-- Card Flip -->
+    <div class="card-flip" id="card-flip" aria-hidden="true">
+      <div class="card-flip__inner">
+        <!-- Back -->
+        <div class="card-flip__face card-flip__back">
+          <svg class="card-back-pattern" viewBox="0 0 200 350" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="350" fill="#0D1530"/>
+            <!-- 外枠 -->
+            <rect x="10" y="10" width="180" height="330" fill="none" stroke="#C8A84B" stroke-width="0.5" opacity="0.4"/>
+            <rect x="16" y="16" width="168" height="318" fill="none" stroke="#C8A84B" stroke-width="0.3" opacity="0.25"/>
+            <!-- 中央シンボル -->
+            <circle cx="100" cy="175" r="55" fill="none" stroke="#C8A84B" stroke-width="0.6" opacity="0.4"/>
+            <circle cx="100" cy="175" r="42" fill="none" stroke="#C8A84B" stroke-width="0.3" opacity="0.25"/>
+            <!-- 月 -->
+            <path d="M100 128 C88 132 82 150 88 166 C80 163 74 154 76 143 C78 133 90 128 100 128Z" fill="#C8A84B" opacity="0.45"/>
+            <!-- 星 -->
+            <polygon points="100,148 102,154 108,154 103,158 105,164 100,160 95,164 97,158 92,154 98,154" fill="#C8A84B" opacity="0.3"/>
+            <!-- 波模様 -->
+            <path d="M30 220 Q50 215 70 220 Q90 225 110 220 Q130 215 150 220 Q170 225 190 220" fill="none" stroke="#C8A84B" stroke-width="0.5" opacity="0.2"/>
+            <path d="M30 230 Q50 225 70 230 Q90 235 110 230 Q130 225 150 230 Q170 235 190 230" fill="none" stroke="#C8A84B" stroke-width="0.5" opacity="0.15"/>
+            <path d="M30 240 Q50 235 70 240 Q90 245 110 240 Q130 235 150 240 Q170 245 190 240" fill="none" stroke="#C8A84B" stroke-width="0.5" opacity="0.1"/>
+            <!-- 四隅装飾 -->
+            <path d="M20 20 L35 20 M20 20 L20 35" stroke="#C8A84B" stroke-width="0.8" opacity="0.5"/>
+            <path d="M180 20 L165 20 M180 20 L180 35" stroke="#C8A84B" stroke-width="0.8" opacity="0.5"/>
+            <path d="M20 330 L35 330 M20 330 L20 315" stroke="#C8A84B" stroke-width="0.8" opacity="0.5"/>
+            <path d="M180 330 L165 330 M180 330 L180 315" stroke="#C8A84B" stroke-width="0.8" opacity="0.5"/>
+          </svg>
+        </div>
+        <!-- Front (populated by JS) -->
+        <div class="card-flip__face card-flip__front" id="card-front">
+          <img id="card-img" src="" alt="" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Info -->
+    <div class="card-info" id="card-info">
+      <p class="card-info__number" id="card-number"></p>
+      <h2 class="card-info__name-ja" id="card-name-ja"></h2>
+      <p class="card-info__name-en" id="card-name-en"></p>
+      <span class="card-info__orientation" id="card-orientation">正位置</span>
+      <div class="card-info__divider"></div>
+      <p class="card-info__message" id="card-message"></p>
+    </div>
+
+  </section>
+
+  <footer class="footer">
+    <p>© Nagi Tarot</p>
+  </footer>
+</main>
+
+<script src="cards.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
